@@ -40,8 +40,6 @@ while(type){
   
     ## MAIN Loop for basic builder
     type <- FALSE
-    #operation <- TRUE
-    #while (operation){
       
       ## Step 0: USER Data
       potential_master_files <- list.files(".",pattern=".xlsx")
@@ -1361,7 +1359,6 @@ while(type){
         }
       } #ends while Error loop
       
-    #} ends while loop for full operation
   } # ends if full DB statement 
 } # ends type loop
 } # ends operation loop
