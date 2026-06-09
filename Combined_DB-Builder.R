@@ -18,6 +18,9 @@ IsotopeRatioThreshold = 0.90 # similarity between  measured
 # and calculated molecular ion envelope
 # the above 2 lines taken from the full DB builder
 
+operation <- TRUE
+while (operation){
+
 type <- TRUE
 
 while(type){
@@ -37,8 +40,8 @@ while(type){
   
     ## MAIN Loop for basic builder
     type <- FALSE
-    operation <- TRUE
-    while (operation){
+    #operation <- TRUE
+    #while (operation){
       
       ## Step 0: USER Data
       potential_master_files <- list.files(".",pattern=".xlsx")
@@ -141,26 +144,6 @@ while(type){
         }
       }
       
-      # MAY Revisit for future iterations
-      # potential_build_style = c("Traditional","Collapsed")
-      # isError = TRUE
-      # while (isError){
-      #   cat(paste0("Build a traditional (low/med/high) or collapsed spectral library?\n\n"))
-      #   for(i in 1:length(potential_build_style)){
-      #     cat(paste0(i,": ",potential_build_style[i],"\n"))
-      #   }
-      #   cat("\n")
-      # 
-      #   a <- readline(prompt="Choose build type (integer value) for creating database: ")
-      #   if (a %in% as.character(seq(1,length(potential_build_style)))){
-      #     build_style = potential_build_style[as.numeric(a)]
-      #     isError = FALSE
-      #     cat("\n")
-      #   } else {
-      #     cat("\n")
-      #     cat("INVALID INPUT. Try again.\n")
-      #   }
-      # }
       build_style = "Traditional"
       
       output_name = "Output_DARTMS_Database"
@@ -408,15 +391,15 @@ while(type){
         }
       }
     }
-  }
+  #}
   if(upper_selected_type %in% full){
     type <- FALSE
     
     # Full DB builder
     
     ## MAIN Loop for full builder
-    operation = TRUE
-    while (operation){
+    #operation = TRUE
+    #while (operation){
       
       ## Step 0: USER Data
       potential_master_files = list.files(".",pattern=".xlsx")
@@ -1376,8 +1359,9 @@ while(type){
         } else {
           cat("INVALID INPUT. Do you want to create another database? (yes/no) ")
         }
-      }
+      } #ends while Error loop
       
-    }
-  }
-}  
+    #} ends while loop for full operation
+  } # ends if full DB statement 
+} # ends type loop
+} # ends operation loop
