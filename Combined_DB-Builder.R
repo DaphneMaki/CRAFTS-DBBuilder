@@ -24,7 +24,7 @@ while (operation){
 type <- TRUE
 
 while(type){
-  cat("There are two types of Databases that can be made with this program.", "\n", "1. Baisc", "\n", "2. Full (Requires Open Babel)")
+  cat("There are two types of Databases that can be made with this program.", "\n", "1. Baisc", "\n", "2. Full (Requires Open Babel)") 
   selected_DB_type <- readline(prompt="Please Select the Type of Database you wish to build: ")
   basic <- c("1", "BASIC", "B", "ONE")
   full <- c("2", "FULL", "F", "TWO")
@@ -373,25 +373,8 @@ while(type){
       
       RDSfilename = paste0(output_name,".RDS")
       saveRDS(Library_RDT,RDSfilename)
-      
-      ## End code (check if another library is to be built?)
-      potential_continue = c("Yes","yes","Y","y")
-      potential_exit = c("No","no","N","n")
-      isError = TRUE
-      cat("\n")
-      while (isError){
-        a <- readline(prompt="Do you want to create another database? (yes/no) ")
-        if (a %in% potential_continue){
-          isError = FALSE
-        } else if (a %in% potential_exit){
-          cat("\nExiting CRAFTS Lab DB Builder program.\n\n")
-          operation = FALSE
-          isError =  FALSE
-        } else {
-          cat("INVALID INPUT. Do you want to create another database? (yes/no) ")
-        }
-      }
-    } # ends if basic
+
+     } # ends if basic
   
   if(upper_selected_type %in% full){
     type <- FALSE
@@ -1111,8 +1094,6 @@ while(type){
       }
       sink()
       
-      
-      
       potential_continue = c("Yes","yes","Y","y")
       cat("\n")
       a <- readline(prompt="Do you want to export the library as an SDF file (for MS Search)? (yes/no) ")
@@ -1198,8 +1179,6 @@ while(type){
         sink()
       }
       
-      
-      
       potential_continue = c("Yes","yes","Y","y")
       cat("\n")
       a <- readline(prompt="Do you want to export the library as a formula list (for Mass Mountaineer)? (yes/no) ")
@@ -1242,24 +1221,24 @@ while(type){
         sink()
       }
       
-      ## End code (check if another library is to be built?)
-      potential_continue = c("Yes","yes","Y","y")
-      potential_exit = c("No","no","N","n")
-      isError = TRUE
-      cat("\n")
-      while (isError){
-        a <- readline(prompt="Do you want to create another database? (yes/no) ")
-        if (a %in% potential_continue){
-          isError = FALSE
-        } else if (a %in% potential_exit){
-          cat("\nExiting CRAFTS Lab DB Builder program.\n\n")
-          operation = FALSE
-          isError =  FALSE
-        } else {
-          cat("INVALID INPUT. Do you want to create another database? (yes/no) ")
-        }
-      } #ends while Error loop
-      
   } # ends if full DB statement 
-} # ends type loop
+    
+    ## End code (check if another library is to be built?)
+    potential_continue = c("Yes","yes","Y","y")
+    potential_exit = c("No","no","N","n")
+    isError = TRUE
+    cat("\n")
+    while (isError){
+      a <- readline(prompt="Do you want to create another database? (yes/no) ")
+      if (a %in% potential_continue){
+        isError = FALSE
+      } else if (a %in% potential_exit){
+        cat("\nExiting CRAFTS Lab DB Builder program.\n\n")
+        operation = FALSE
+        isError =  FALSE
+      } else {
+        cat("INVALID INPUT. Do you want to create another database? (yes/no) ")
+      }
+    } #ends while Error loop
+  } # ends type loop
 } # ends operation loop
