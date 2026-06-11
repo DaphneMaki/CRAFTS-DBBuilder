@@ -36,111 +36,114 @@ while(type){
     cat("\n")
     cat("INVALID INPUT. Try again.","\n", "\n") 
   } 
+  
+  ## Step 0: USER Data
+  potential_master_files <- list.files(".",pattern=".xlsx")
+  if(length(potential_master_files)<1){
+    operation = asm_ErrorFlagFatal("Step 0. No potential master_files in current directory.")
+    break
+  } else {
+    
+    isError = TRUE
+    while (isError){
+      cat(paste0("There are ", length(potential_master_files), " potential master files currently in the directory.\n\n"))
+      for(i in 1:length(potential_master_files)){
+        cat(paste0(i,": ",potential_master_files[i],"\n"))
+      }
+      cat("\n")
+      
+      a <- readline(prompt="Choose Master File (integer value) for creating database: ")
+      if (a %in% as.character(seq(1,length(potential_master_files)))){
+        master_file = potential_master_files[as.numeric(a)]
+        isError = FALSE
+        cat("\n")
+      } else {
+        cat("\n")
+        cat("INVALID INPUT. Try again.\n")
+      }
+    }
+  }
+  
+  potential_main_folders = list.dirs(".",recursive=FALSE)
+  a = which(potential_main_folders == "./source")
+  if(length(a)>0) potential_main_folders = potential_main_folders[-a]
+  a = which(potential_main_folders == "./.git")
+  if(length(a)>0) potential_main_folders = potential_main_folders[-a]
+  
+  if(length(potential_main_folders)<1){
+    operation = asm_ErrorFlagFatal("Step 0. No potential main_folders in current directory.")
+    break
+  } else {
+    
+    isError = TRUE
+    while (isError){
+      cat(paste0("There are ", length(potential_main_folders), " potential main folders currently in the directory.\n\n"))
+      for(i in 1:length(potential_main_folders)){
+        folder_name = strsplit(potential_main_folders[i],"/")[[1]][2]
+        cat(paste0(i,": ",folder_name,"\n"))
+      }
+      cat("\n")
+      
+      a <- readline(prompt="Choose Main Folder (integer value) for creating database: ")
+      if (a %in% as.character(seq(1,length(potential_main_folders)))){
+        main_folder = strsplit(potential_main_folders[as.integer(a)],"/")[[1]][2]
+        isError = FALSE
+        cat("\n")
+      } else {
+        cat("\n")
+        cat("INVALID INPUT. Try again.\n")
+      }
+    }
+  }
+  
+  potential_RequireFolderStructure = list(c("LOW","MID","HIGH"),c("1","2","3"), c("+30 V","+60 V","+90 V"))
+  isError = TRUE
+  while (isError){
+    cat(paste0("Subfolder structures currently allowed by the DB builder:\n\n"))
+    for(i in 1:length(potential_RequireFolderStructure)){
+      cat(paste0(i,": "))
+      for(j in 1:length(potential_RequireFolderStructure[[i]])){
+        cat(paste0(potential_RequireFolderStructure[[i]][j]," "))
+      }
+      cat("\n")
+    }
+    cat("\n")
+    
+    a <- readline(prompt="Choose subfolder structure (integer value) for creating database: ")
+    if (a %in% as.character(seq(1,length(potential_RequireFolderStructure)))){
+      RequireFolderStructure = potential_RequireFolderStructure[[as.numeric(a)]]
+      isError = FALSE
+      cat("\n")
+    } else {
+      cat("\n")
+      cat("INVALID INPUT. Try again.\n")
+    }
+  }
+  
+  mz_res = 0.005 # default value
+  isError = TRUE
+  while (isError){
+    
+    a <- readline(prompt="Enter m/z tolerance in Daltons (e.g. 0.005): ")
+    b <- suppressWarnings(as.numeric(a))
+    if (!is.na(b)){
+      if(b>0){
+        mz_res = b
+        isError = FALSE
+      } else {
+        cat("INVALID INPUT. The m/z tolerance must be greater than 0 Daltons. Try again.\n")
+      }
+    } else {
+      cat("INVALID INPUT. Try again.\n")
+    }
+  }
+  
   if(upper_selected_type %in% basic){
   
     ## MAIN Loop for basic builder
     type <- FALSE
       
-      ## Step 0: USER Data
-      potential_master_files <- list.files(".",pattern=".xlsx")
-      if(length(potential_master_files)<1){
-        operation = asm_ErrorFlagFatal("Step 0. No potential master_files in current directory.")
-        break
-      } else {
-        
-        isError = TRUE
-        while (isError){
-          cat(paste0("There are ", length(potential_master_files), " potential master files currently in the directory.\n\n"))
-          for(i in 1:length(potential_master_files)){
-            cat(paste0(i,": ",potential_master_files[i],"\n"))
-          }
-          cat("\n")
-          
-          a <- readline(prompt="Choose Master File (integer value) for creating database: ")
-          if (a %in% as.character(seq(1,length(potential_master_files)))){
-            master_file = potential_master_files[as.numeric(a)]
-            isError = FALSE
-            cat("\n")
-          } else {
-            cat("\n")
-            cat("INVALID INPUT. Try again.\n")
-          }
-        }
-      }
-      
-      potential_main_folders = list.dirs(".",recursive=FALSE)
-      a = which(potential_main_folders == "./source")
-      if(length(a)>0) potential_main_folders = potential_main_folders[-a]
-      a = which(potential_main_folders == "./.git")
-      if(length(a)>0) potential_main_folders = potential_main_folders[-a]
-      
-      if(length(potential_main_folders)<1){
-        operation = asm_ErrorFlagFatal("Step 0. No potential main_folders in current directory.")
-        break
-      } else {
-        
-        isError = TRUE
-        while (isError){
-          cat(paste0("There are ", length(potential_main_folders), " potential main folders currently in the directory.\n\n"))
-          for(i in 1:length(potential_main_folders)){
-            folder_name = strsplit(potential_main_folders[i],"/")[[1]][2]
-            cat(paste0(i,": ",folder_name,"\n"))
-          }
-          cat("\n")
-          
-          a <- readline(prompt="Choose Main Folder (integer value) for creating database: ")
-          if (a %in% as.character(seq(1,length(potential_main_folders)))){
-            main_folder = strsplit(potential_main_folders[as.integer(a)],"/")[[1]][2]
-            isError = FALSE
-            cat("\n")
-          } else {
-            cat("\n")
-            cat("INVALID INPUT. Try again.\n")
-          }
-        }
-      }
-      
-      potential_RequireFolderStructure = list(c("LOW","MID","HIGH"),c("1","2","3"), c("+30 V","+60 V","+90 V"))
-      isError = TRUE
-      while (isError){
-        cat(paste0("Subfolder structures currently allowed by the DB builder:\n\n"))
-        for(i in 1:length(potential_RequireFolderStructure)){
-          cat(paste0(i,": "))
-          for(j in 1:length(potential_RequireFolderStructure[[i]])){
-            cat(paste0(potential_RequireFolderStructure[[i]][j]," "))
-          }
-          cat("\n")
-        }
-        cat("\n")
-        
-        a <- readline(prompt="Choose subfolder structure (integer value) for creating database: ")
-        if (a %in% as.character(seq(1,length(potential_RequireFolderStructure)))){
-          RequireFolderStructure = potential_RequireFolderStructure[[as.numeric(a)]]
-          isError = FALSE
-          cat("\n")
-        } else {
-          cat("\n")
-          cat("INVALID INPUT. Try again.\n")
-        }
-      }
-      
-      mz_res = 0.005 # default value
-      isError = TRUE
-      while (isError){
-        
-        a <- readline(prompt="Enter m/z tolerance in Daltons (e.g. 0.005): ")
-        b <- suppressWarnings(as.numeric(a))
-        if (!is.na(b)){
-          if(b>0){
-            mz_res = b
-            isError = FALSE
-          } else {
-            cat("INVALID INPUT. The m/z tolerance must be greater than 0 Daltons. Try again.\n")
-          }
-        } else {
-          cat("INVALID INPUT. Try again.\n")
-        }
-      }
+  
       
       build_style = "Traditional"
       
@@ -397,90 +400,7 @@ while(type){
     
     ## MAIN Loop for full builder
       
-      ## Step 0: USER Data
-      potential_master_files = list.files(".",pattern=".xlsx")
-      if(length(potential_master_files)<1){
-        operation = asm_ErrorFlagFatal("Step 0. No potential master_files in current directory.")
-        break
-      } else {
-        
-        isError = TRUE
-        while (isError){
-          cat(paste0("There are ", length(potential_master_files), " potential master files currently in the directory.\n\n"))
-          for(i in 1:length(potential_master_files)){
-            cat(paste0(i,": ",potential_master_files[i],"\n"))
-          }
-          cat("\n")
-          
-          a <- readline(prompt="Choose Master File (integer value) for creating database: ")
-          if (a %in% as.character(seq(1,length(potential_master_files)))){
-            master_file = potential_master_files[as.numeric(a)]
-            isError = FALSE
-            cat("\n")
-          } else {
-            cat("\n")
-            cat("INVALID INPUT. Try again.\n")
-          }
-        }
-      }
-      
-      potential_main_folders = list.dirs(".",recursive=FALSE)
-      a = which(potential_main_folders == "./source")
-      if(length(a)>0) potential_main_folders = potential_main_folders[-a]
-      a = which(potential_main_folders == "./.git")
-      if(length(a)>0) potential_main_folders = potential_main_folders[-a]
-      
-      if(length(potential_main_folders)<1){
-        operation = asm_ErrorFlagFatal("Step 0. No potential main_folders in current directory.")
-        break
-      } else {
-        
-        isError = TRUE
-        while (isError){
-          cat(paste0("There are ", length(potential_main_folders), " potential main folders currently in the directory.\n\n"))
-          for(i in 1:length(potential_main_folders)){
-            folder_name = strsplit(potential_main_folders[i],"/")[[1]][2]
-            cat(paste0(i,": ",folder_name,"\n"))
-          }
-          cat("\n")
-          
-          a <- readline(prompt="Choose Main Folder (integer value) for creating database: ")
-          if (a %in% as.character(seq(1,length(potential_main_folders)))){
-            main_folder = strsplit(potential_main_folders[as.integer(a)],"/")[[1]][2]
-            isError = FALSE
-            cat("\n")
-          } else {
-            cat("\n")
-            cat("INVALID INPUT. Try again.\n")
-          }
-        }
-      }
-      
-      potential_RequireFolderStructure = list(c("LOW","MID","HIGH"),c("1","2","3"), c("+30 V","+60 V","+90 V"))
-      isError = TRUE
-      while (isError){
-        cat(paste0("Subfolder structures currently allowed by the DB builder:\n\n"))
-        for(i in 1:length(potential_RequireFolderStructure)){
-          cat(paste0(i,": "))
-          for(j in 1:length(potential_RequireFolderStructure[[i]])){
-            cat(paste0(potential_RequireFolderStructure[[i]][j]," "))
-          }
-          cat("\n")
-        }
-        cat("\n")
-        
-        a <- readline(prompt="Choose subfolder structure (integer value) for creating database: ")
-        if (a %in% as.character(seq(1,length(potential_RequireFolderStructure)))){
-          RequireFolderStructure = potential_RequireFolderStructure[[as.numeric(a)]]
-          isError = FALSE
-          cat("\n")
-        } else {
-          cat("\n")
-          cat("INVALID INPUT. Try again.\n")
-        }
-      }
-      
-      potential_gas_phase = c("He","N2")
+           potential_gas_phase = c("He","N2")
       isError = TRUE
       while (isError){
         cat(paste0("Under which gas phase were the spectra collected?\n\n"))
@@ -520,23 +440,6 @@ while(type){
         }
       }
       
-      mz_res = 0.005 # default value
-      isError = TRUE
-      while (isError){
-        
-        a <- readline(prompt="Enter m/z tolerance in Daltons (e.g. 0.005): ")
-        b <- suppressWarnings(as.numeric(a))
-        if (!is.na(b)){
-          if(b>0){
-            mz_res = b
-            isError = FALSE
-          } else {
-            cat("INVALID INPUT. The m/z tolerance must be greater than 0 Daltons. Try again.\n")
-          }
-        } else {
-          cat("INVALID INPUT. Try again.\n")
-        }
-      }
       
       potential_build_style = c("Traditional","Collapsed")
       isError = TRUE
