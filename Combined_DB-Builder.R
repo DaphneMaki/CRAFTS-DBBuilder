@@ -24,10 +24,10 @@ while (operation){
 type <- TRUE
 
 while(type){
-  cat("There are two types of Databases that can be made with this program.", "\n", "1. Baisc", "\n", "2. Full (Requires OpenBable)")
+  cat("There are two types of Databases that can be made with this program.", "\n", "1. Baisc", "\n", "2. Full (Requires Open Babel)")
   selected_DB_type <- readline(prompt="Please Select the Type of Database you wish to build: ")
-  basic <- c("1", "Basic", "B", "one")
-  full <- c("2", "Full", "F", "two")
+  basic <- c("1", "BASIC", "B", "ONE")
+  full <- c("2", "FULL", "F", "TWO")
   valid_types <- c(full, basic)
   
   upper_selected_type <- toupper(selected_DB_type)
@@ -388,16 +388,14 @@ while(type){
           cat("INVALID INPUT. Do you want to create another database? (yes/no) ")
         }
       }
-    }
-  #}
+    } # ends if basic
+  
   if(upper_selected_type %in% full){
     type <- FALSE
     
     # Full DB builder
     
     ## MAIN Loop for full builder
-    #operation = TRUE
-    #while (operation){
       
       ## Step 0: USER Data
       potential_master_files = list.files(".",pattern=".xlsx")
