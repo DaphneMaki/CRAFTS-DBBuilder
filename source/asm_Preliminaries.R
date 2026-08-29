@@ -52,9 +52,18 @@ if("stringr" %in% row.names(installed.packages())==FALSE){
   library(stringr)
 }
 
+# install shinnyjs for downloads in shinny app
+if("shinyjs" %in% row.names(installed.packages())==FALSE){
+  install.packages("shinyjs")
+  }
+  library(shinyjs)
+
 cat("Loaded all external packages.\n")
 
 ## custom functions
+
+path <- getwd()
+parent_path <- paste0(path,"/source")
 child_path = paste0(parent_path,"/asm_Functions/")
 asmFunctions = list.files(child_path)
 for(i in 1:length(asmFunctions)){
