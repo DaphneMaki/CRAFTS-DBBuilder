@@ -39,7 +39,6 @@ ui <- fluidPage(
                                   label = "Please upload all LOW fragmentation Mass Spec files", 
                                   accept = c(".txt"),  # defaults to only accept txt files, but it's easily bypassed so I need to make more checks
                                   multiple = TRUE), # allows the user to upload multiple files
-                      #uiOutput("folder_one_dropdown") # creates a drop down for all the uploaded files
                       uiOutput("folder_one_file_names") # creates a scrollable text box of the names of the uploaded files
                ),
                
@@ -47,14 +46,14 @@ ui <- fluidPage(
                                   label = "Please upload all MID fragmentation Mass Spec files", 
                                   accept = c(".txt"), # defaults to only accept txt files, but it's easily bypassed so I need to make more checks
                                   multiple = TRUE), # allows the user to upload multiple files
-                      uiOutput("folder_two_dropdown") # creates a drop down for all the uploaded files
+                      uiOutput("folder_two_file_names") # creates a scrollable text box for all the uploaded files
                ), 
                
                column(4,fileInput("folder_three",
                                   label = "Please upload all HIGH fragmentation Mass Spec files",
                                   accept = c(".txt"), # defaults to only accept txt files, but it's easily bypassed so I need to make more checks
                                   multiple = TRUE), # allows the user to upload multiple files
-                      uiOutput("folder_three_dropdown") # creates a drop down for all the uploaded files
+                      uiOutput("folder_three_file_names") # creates a drop down for all the uploaded files
                ) 
              ),
              
@@ -117,9 +116,10 @@ server <- function(input, output, session) {
     } else if(grepl("\\.csv$", input$Master_file$datapath, ignore.case = TRUE)){
       meta_dat <- read.csv(input$Master_file$datapath)
     } else {
-      showNotification( "Please upload a .xlsx or .csv file.",type = "error", duration = NULL)
+      showNotification( "Please upload a .xlsx or .csv file.",type = "error", duration = NULL, closeButton = FALSE, id = "metadata_not_valid_format")
       return(NULL)
     }
+    removeNotification("metadata_not_valid_format")
     metadata_good(TRUE)
     meta_dat
   })
@@ -158,20 +158,103 @@ server <- function(input, output, session) {
   
   # showing the user a list of the files that they uploaded as a drop-down menu
   
+  folder_one_files_to_use <- reactiveVal(NULL)
+
+  observeEvent(input$folder_one, { 
+    folder_one_files_to_use(input$folder_one) 
+    })
+  
   
   output$folder_one_file_names <- renderUI({
     req(input$folder_one)
     
+    folder_one_files <- folder_one_files_to_use()
+
+    
+    # if(length(deleted_folder_one_files) > 0){
+    #   folder_one_files <- folder_one_files[!folder_one_files$name %in% deleted_folder_one_files, ,drop = FALSE]
+    #   folder_one_files_to_use(folder_one_files)
+    #   #print(folder_one_files_to_use()$datapath)
+    # 
+    # }
+    
     tags$div(
-      tags$strong("Uploaded files from first folder:"),
+      tags$strong("Uploaded LOW spectra:"),
       tags$div(
-        style ="height: 120px; 
-                          overflow-y: auto; 
-                          border: 1px solid #ccc; 
-                          border-radius: 4px;
-                          padding: 8px;
-                          margin-top: 5px;",
-        lapply(input$folder_one$name, function(filename) {
+        style ="height: 120px;
+        overflow-y: auto;
+        border: 1px solid #ccc; 
+        border-radius: 4px;
+        padding: 8px;
+        margin-top: 5px;
+        background-color: #DEDEDE;",
+        
+        lapply(seq_len(nrow(folder_one_files)), function(i) { 
+          tags$div(style = " 
+                   display: flex; 
+                   align-items: center; 
+                   justify-content: space-between;
+                   padding: 2px 0;", 
+                   tags$span(folder_one_files$name[i]),
+                   
+                   actionButton(inputId = paste0("delete_low_", i), 
+                                label = NULL, 
+                                icon = icon("trash"),
+                                class = "btn btn-danger btn-sm", 
+                                style = " padding: 0px 6px; 
+                                margin-left: 8px;"
+                                )
+                   )
+          }) 
+
+      )
+    )
+  })
+  
+  
+  observe({ 
+    req(input$folder_one) 
+    files <- input$folder_one 
+    lapply(seq_len(nrow(files)), function(i) { 
+      local({ 
+        
+        i_for_id <- i
+        
+        #filenames <- files$name[i] 
+        delete_id <- paste0("delete_low_", i_for_id) 
+        observeEvent(input[[delete_id]], { 
+          current_files <- folder_one_files_to_use()
+          
+          current_files <- current_files[ -i_for_id, , drop = FALSE ]
+          
+          folder_one_files_to_use(current_files)
+          
+         # folder_one_deleted(unique(c(folder_one_deleted(), filenames)) ) 
+          }, 
+          ignoreInit = TRUE) 
+        
+        #print(folder_one_files_to_use())
+        })
+      }) 
+    })
+  
+  
+  
+  
+  output$folder_two_file_names <- renderUI({
+    req(input$folder_two)
+    
+    tags$div(
+      tags$strong("Uploaded MID spectra:"),
+      tags$div(
+        style ="height: 120px;
+        overflow-y: auto; 
+        border: 1px solid #ccc; 
+        border-radius: 4px;
+        padding: 8px;
+        margin-top: 5px;
+        background-color: #DEDEDE;",
+        lapply(input$folder_two$name, function(filename) {
           tags$div(
             style = "padding: 2px 0;",
             filename
@@ -182,48 +265,26 @@ server <- function(input, output, session) {
   })
   
   
-  output$folder_one_dropdown <- renderUI({
-    req(input$folder_one)
-    
-    selectizeInput("folder_one_uplodaded_files", 
-                   "Uploaded files from first folder:",
-                   choices = setNames(
-                     input$folder_one$name,
-                     input$folder_one$name),
-                   options = list(
-                     placeholder = "Search for a file...",
-                     maxOptions = 20
-                   )
-    )
-  })
-  
-  output$folder_two_dropdown <- renderUI({
-    req(input$folder_two)
-    
-    selectizeInput("folder_two_uplodaded_files", 
-                   "Uploaded files from second folder:",
-                   choices = setNames(
-                     input$folder_two$name,
-                     input$folder_two$name),
-                   options = list(
-                     placeholder = "Search for a file...",
-                     maxOptions = 20
-                   )
-    )
-  })
-  
-  output$folder_three_dropdown <- renderUI({
+  output$folder_three_file_names <- renderUI({
     req(input$folder_three)
     
-    selectizeInput("folder_three_uplodaded_files", 
-                   "Uploaded files from third folder:",
-                   choices = setNames(
-                     input$folder_three$name,
-                     input$folder_three$name),
-                   options = list(
-                     placeholder = "Search for a file...",
-                     maxOptions = 20
-                   )
+    tags$div(
+      tags$strong("Uploaded HIGH spectra:"),
+      tags$div(
+        style ="height: 120px;
+        overflow-y: auto; 
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        padding: 8px;
+        margin-top: 5px;
+        background-color: #DEDEDE;",
+        lapply(input$folder_three$name, function(filename) {
+          tags$div(
+            style = "padding: 2px 0;",
+            filename
+          )
+        })
+      )
     )
   })
   
@@ -235,11 +296,15 @@ server <- function(input, output, session) {
   
   # checks for folder 1
   observe({
-    req(input$folder_one)
     
-    extensions_one <- tolower(tools::file_ext(input$folder_one$name))
+    files_one <- folder_one_files_to_use()
     
-    bad_files_one <- input$folder_one$name[extensions_one != "txt"]
+    req(files_one)
+    
+    extensions_one <- tolower(tools::file_ext(files_one$name))
+    
+    bad_files_one <- files_one$name[extensions_one != "txt"]
+    
     
     if (length(bad_files_one) > 0) {
       showNotification(
@@ -255,7 +320,7 @@ server <- function(input, output, session) {
       return(NULL)
     } else {
       removeNotification("folder_one_not_a_txt")
-      folder_two_good(TRUE)
+      folder_one_good(TRUE)
     }
     
   })
@@ -345,7 +410,7 @@ server <- function(input, output, session) {
     
     if (length(missing_files) > 0) {
       showNotification(
-        paste("The following codes with metadata in the master file do not have corresponding spectra in folder one: ",
+        paste("The following codes with metadata in the master file do not have corresponding LOW spectra: ",
               paste(missing_files, collapse = ", ")),
         type = "error",
         duration = NULL, closeButton = FALSE, 
@@ -387,7 +452,7 @@ server <- function(input, output, session) {
     
     if (length(missing_files) > 0) {
       showNotification(
-        paste("The following codes with metadata in the master file do not have corresponding spectra in folder two: ",
+        paste("The following codes with metadata in the master file do not have corresponding MID spectra: ",
               paste(missing_files, collapse = ", ")),
         type = "error",
         duration = NULL, closeButton = FALSE,
@@ -429,7 +494,7 @@ server <- function(input, output, session) {
     
     if (length(missing_files) > 0) {
       showNotification(
-        paste("The following codes with metadata in the master file do not have corresponding spectra in folder three: ",
+        paste("The following codes with metadata in the master file do not have corresponding HIGH spectra: ",
               paste(missing_files, collapse = ", ")),
         type = "error",
         duration = NULL, closeButton = FALSE,
@@ -637,7 +702,7 @@ server <- function(input, output, session) {
     
     if (length(missing_files_one) > 0) {
       showNotification(
-        paste("The following codes with metadata in the master file do not have corresponding spectra in folder one: ",
+        paste("The following codes with metadata in the master file do not have corresponding LOW spectra: ",
               paste(missing_files_one, collapse = ", ")),
         type = "error",
         duration = NULL)
@@ -664,7 +729,7 @@ server <- function(input, output, session) {
       
       if (length(missing_files_two) > 0) {
         showNotification(
-          paste("The following codes with metadata in the master file do not have corresponding spectra in folder two: ",
+          paste("The following codes with metadata in the master file do not have corresponding MID spectra: ",
                 paste(missing_files_two, collapse = ", ")),
           type = "error",
           duration = NULL
@@ -692,7 +757,7 @@ server <- function(input, output, session) {
       
       if (length(missing_files_three) > 0) {
         showNotification(
-          paste("The following codes with metadata in the master file do not have corresponding spectra in folder three: ",
+          paste("The following codes with metadata in the master file do not have corresponding HIGH spectra: ",
                 paste(missing_files_three, collapse = ", ")
           ),
           type = "error",
