@@ -1,7 +1,7 @@
 library(shiny)
 library(shinyjs)
 
-#needed functions, idk if I can use "source" so just putting them here
+#loading in the required libraries and functions
 
 path <- getwd()
 parent_path <- paste0(path,"/source")
@@ -30,7 +30,7 @@ ui <- fluidPage(
                column(6, fileInput("Master_file",
                                    label = "Please Choose a Master File", 
                                    accept = c(".xlsx", ".csv"))), # defaults to only accept csv and xlsx files, but it's easily bypassed so there are checks further in 
-               column(6, uiOutput("codes")) # this here is to display the codes that were found in the metadata
+           #    column(6, uiOutput("codes")) # this here is to display the codes that were found in the metadata
              ),
              
              # the file inputs
@@ -124,6 +124,56 @@ server <- function(input, output, session) {
     meta_dat
   })
   
+  # give error if no codes in metadata
+  
+  observe({
+    meta_dat <- uploaded_metadata()
+    req(meta_dat)
+    codes <- meta_dat$Code
+    
+    if(length(codes) == 0){
+      showNotification("No codes found in metadata", type = "error", duration = NULL, closeButton = FALSE, 
+                       id = "no_codes_in_metadata")
+      metadata_good(FALSE)
+      return(NULL)
+    } else{
+      removeNotification("no_codes_in_metadata")
+    }
+  })
+  
+  # column check for full database
+  
+observe({
+  meta_dat <- uploaded_metadata()
+  req(meta_dat,input$type_of_database)
+  
+  if(input$type_of_database == "Full"){
+
+      required_cols <- c("Canonical_SMILES", "Name", "Synonyms", "IUPAC_Formal_Name")
+      cols_in_metadata <- colnames(meta_dat)
+      
+      missing_cols <- setdiff(required_cols, cols_in_metadata)
+      
+      if(length(missing_cols > 0)){
+        showNotification(
+          paste("The following required column(s) were not found in metadata:", paste(missing_cols, collapse = ", ")),
+          type = "error", duration = NULL, closeButton = FALSE,id = "missing_columns")
+        metadata_good(FALSE)
+        return(NULL)
+      } else{
+        removeNotification("missing_columns")
+      }
+        
+      
+    
+    
+    
+  }
+  
+  
+})
+  
+  
   #display the codes from the metadata
   
   output$codes <- renderUI({
@@ -133,15 +183,6 @@ server <- function(input, output, session) {
     req(meta_dat)
     
     # this part is the one that actually grabs the codes and displays them as a list
-    codes <- meta_dat$Code
-    
-    if(length(codes) == 0){
-      showNotification("No codes found in metadata", type = "error", duration = NULL, closeButton = FALSE, 
-                       id = "no_codes_in_metadata")
-      return(NULL)
-    } else{
-      removeNotification("no_codes_in_metadata")
-    }
     
     selectizeInput("codes_in_metadata", 
                    "Codes found in the metadata file:",
@@ -156,27 +197,20 @@ server <- function(input, output, session) {
   })
   
   
-  # showing the user a list of the files that they uploaded as a drop-down menu
+  # showing the user a list of the files that they uploaded as a scrollable textbox with delete button
   
+  
+  # folder one
   folder_one_files_to_use <- reactiveVal(NULL)
 
   observeEvent(input$folder_one, { 
     folder_one_files_to_use(input$folder_one) 
     })
   
-  
   output$folder_one_file_names <- renderUI({
     req(input$folder_one)
     
     folder_one_files <- folder_one_files_to_use()
-
-    
-    # if(length(deleted_folder_one_files) > 0){
-    #   folder_one_files <- folder_one_files[!folder_one_files$name %in% deleted_folder_one_files, ,drop = FALSE]
-    #   folder_one_files_to_use(folder_one_files)
-    #   #print(folder_one_files_to_use()$datapath)
-    # 
-    # }
     
     tags$div(
       tags$strong("Uploaded LOW spectra:"),
@@ -203,10 +237,10 @@ server <- function(input, output, session) {
                                 class = "btn btn-danger btn-sm", 
                                 style = " padding: 0px 6px; 
                                 margin-left: 8px;"
-                                )
                    )
-          }) 
-
+          )
+        }) 
+        
       )
     )
   })
@@ -220,8 +254,9 @@ server <- function(input, output, session) {
         
         i_for_id <- i
         
-        #filenames <- files$name[i] 
         delete_id <- paste0("delete_low_", i_for_id) 
+        
+        # delete files when the trash can button is pressed
         observeEvent(input[[delete_id]], { 
           current_files <- folder_one_files_to_use()
           
@@ -229,7 +264,6 @@ server <- function(input, output, session) {
           
           folder_one_files_to_use(current_files)
           
-         # folder_one_deleted(unique(c(folder_one_deleted(), filenames)) ) 
           }, 
           ignoreInit = TRUE) 
         
@@ -239,11 +273,19 @@ server <- function(input, output, session) {
     })
   
   
+  # folder two
   
+  folder_two_files_to_use <- reactiveVal(NULL)
+  
+  observeEvent(input$folder_two, { 
+    folder_two_files_to_use(input$folder_two) 
+  })
   
   output$folder_two_file_names <- renderUI({
     req(input$folder_two)
     
+    
+    folder_two_files <- folder_two_files_to_use()
     tags$div(
       tags$strong("Uploaded MID spectra:"),
       tags$div(
@@ -254,19 +296,71 @@ server <- function(input, output, session) {
         padding: 8px;
         margin-top: 5px;
         background-color: #DEDEDE;",
-        lapply(input$folder_two$name, function(filename) {
-          tags$div(
-            style = "padding: 2px 0;",
-            filename
+
+        
+        lapply(seq_len(nrow(folder_two_files)), function(i) { 
+          tags$div(style = " 
+                   display: flex; 
+                   align-items: center; 
+                   justify-content: space-between;
+                   padding: 2px 0;", 
+                   tags$span(folder_two_files$name[i]),
+                   
+                   actionButton(inputId = paste0("delete_mid_", i), 
+                                label = NULL, 
+                                icon = icon("trash"),
+                                class = "btn btn-danger btn-sm", 
+                                style = " padding: 0px 6px; 
+                                margin-left: 8px;"
+                   )
           )
-        })
+        }) 
       )
     )
   })
   
   
+  
+  observe({ 
+    req(input$folder_two) 
+    files <- input$folder_two 
+    lapply(seq_len(nrow(files)), function(i) { 
+      local({ 
+        
+        i_for_id <- i
+        
+        delete_id <- paste0("delete_mid_", i_for_id) 
+        observeEvent(input[[delete_id]], { 
+          current_files <- folder_two_files_to_use()
+          
+          current_files <- current_files[ -i_for_id, , drop = FALSE ]
+          
+          folder_two_files_to_use(current_files)
+          
+        }, 
+        ignoreInit = TRUE) 
+        
+        #print(folder_two_files_to_use())
+      })
+    }) 
+  })
+  
+  
+  
+  # folder three
+  
+  folder_three_files_to_use <- reactiveVal(NULL)
+  
+  observeEvent(input$folder_three, { 
+    folder_three_files_to_use(input$folder_three) 
+  })
+  
+
   output$folder_three_file_names <- renderUI({
     req(input$folder_three)
+    
+    folder_three_files <- folder_three_files_to_use()
+    
     
     tags$div(
       tags$strong("Uploaded HIGH spectra:"),
@@ -278,14 +372,52 @@ server <- function(input, output, session) {
         padding: 8px;
         margin-top: 5px;
         background-color: #DEDEDE;",
-        lapply(input$folder_three$name, function(filename) {
-          tags$div(
-            style = "padding: 2px 0;",
-            filename
+
+        lapply(seq_len(nrow(folder_three_files)), function(i) { 
+          tags$div(style = " 
+                   display: flex; 
+                   align-items: center; 
+                   justify-content: space-between;
+                   padding: 2px 0;", 
+                   tags$span(folder_three_files$name[i]),
+                   
+                   actionButton(inputId = paste0("delete_high_", i), 
+                                label = NULL, 
+                                icon = icon("trash"),
+                                class = "btn btn-danger btn-sm", 
+                                style = " padding: 0px 6px; 
+                                margin-left: 8px;"
+                   )
           )
-        })
+        }) 
       )
     )
+  })
+  
+  
+  
+  
+  observe({ 
+    req(input$folder_three) 
+    files <- input$folder_three 
+    lapply(seq_len(nrow(files)), function(i) { 
+      local({ 
+        
+        i_for_id <- i
+        
+        delete_id <- paste0("delete_high_", i_for_id) 
+        observeEvent(input[[delete_id]], { 
+          current_files <- folder_three_files_to_use()
+          
+          current_files <- current_files[ -i_for_id, , drop = FALSE ]
+          
+          folder_three_files_to_use(current_files)
+          
+        }, 
+        ignoreInit = TRUE) 
+        
+      })
+    }) 
   })
   
   # check if the uploaded spectra files are .txt files
@@ -293,6 +425,14 @@ server <- function(input, output, session) {
   folder_one_good <- reactiveVal(FALSE, label = "checks for folder one")
   folder_two_good <- reactiveVal(TRUE, label = "checks for folder two")
   folder_three_good <- reactiveVal(TRUE, label = "checks for folder three")
+  
+  folder_one_good_meta <- reactiveVal(FALSE, label = "checks for folder one compared to metadata")
+  folder_two_good_meta <- reactiveVal(TRUE, label = "checks for folder two compared to metadata")
+  folder_three_good_meta <- reactiveVal(TRUE, label = "checks for folder three compared to metadata")
+  
+  folder_one_good_codes <- reactiveVal(FALSE, label = "checks for folder one codes")
+  folder_two_good_codes <- reactiveVal(TRUE, label = "checks for folder two codes")
+  folder_three_good_codes <- reactiveVal(TRUE, label = "checks for folder three codes")
   
   # checks for folder 1
   observe({
@@ -309,7 +449,7 @@ server <- function(input, output, session) {
     if (length(bad_files_one) > 0) {
       showNotification(
         paste(
-          "Please upload all spectra files as .txt files. The following files are not .txt files:",
+          "Please upload all spectra files as .txt files. The following LOW spectra files are not .txt files:",
           paste(bad_files_one, collapse = ", ")),
         type = "error",
         duration = NULL, 
@@ -327,16 +467,18 @@ server <- function(input, output, session) {
   
   # checks for folder 2
   observe({
-    req(input$folder_two)
+    files_two <- folder_two_files_to_use()
     
-    extensions_two <- tolower(tools::file_ext(input$folder_two$name))
+    req(files_two)
     
-    bad_files_two <- input$folder_two$name[extensions_two != "txt"]
+    extensions_two <- tolower(tools::file_ext(files_two$name))
+    
+    bad_files_two <- files_two$name[extensions_two != "txt"]
     
     if (length(bad_files_two) > 0) {
       showNotification(
         paste(
-          "Please upload all spectra files as .txt files. The following files are not .txt files:",
+          "Please upload all spectra files as .txt files. The following MID spectra files are not .txt files:",
           paste(bad_files_two, collapse = ", ")),
         type = "error",
         duration = NULL,
@@ -355,16 +497,20 @@ server <- function(input, output, session) {
   
   # checks for folder 3
   observe({
-    req(input$folder_three)
     
-    extensions_three <- tolower(tools::file_ext(input$folder_three$name))
+    files_three <- folder_three_files_to_use()
     
-    bad_files_three <- input$folder_three$name[extensions_three != "txt"]
+    req(files_three)
+    
+    extensions_three <- tolower(tools::file_ext(files_three$name))
+    
+    bad_files_three <- files_three$name[extensions_three != "txt"]
+
     
     if (length(bad_files_three) > 0) {
       showNotification(
         paste(
-          "Please upload all spectra files as .txt files. The following files are not .txt files:",
+          "Please upload all spectra files as .txt files. The following HIGH spectra files are not .txt files:",
           paste(bad_files_three, collapse = ", ")),
         type = "error",
         duration = NULL,
@@ -374,7 +520,7 @@ server <- function(input, output, session) {
       folder_three_good(FALSE)
       return(NULL)
     } else {
-      removeNotification("folder_one_not_a_txt")
+      removeNotification("folder_three_not_a_txt")
       folder_three_good(TRUE)
     }
     
@@ -386,26 +532,27 @@ server <- function(input, output, session) {
   #folder one
   observe({
     meta_dat <- uploaded_metadata()
-    req(meta_dat, input$folder_one)
+    files <- folder_one_files_to_use()
+    req(meta_dat, files)
     
     codes <- as.character(meta_dat$Code)
-    file_codes <- tools::file_path_sans_ext(input$folder_one$name)
+    file_codes <- tools::file_path_sans_ext(files$name)
     
     missing_codes <- setdiff(file_codes, codes)
     missing_files <- setdiff(codes, file_codes)
     
     if (length(missing_codes) > 0) {
       showNotification(
-        paste("The following spectra in folder 1 do not have corresponding codes in the metadata file: ",
+        paste("The following LOW spectra do not have corresponding codes in the metadata file: ",
               paste(missing_codes, collapse = ", ")),
         type = "error",
         duration = NULL, closeButton = FALSE,
         id = "folder_one_spectra_not_in_metadata"
       )
-      folder_one_good(FALSE)
+      folder_one_good_meta(FALSE)
     } else{
       removeNotification("folder_one_spectra_not_in_metadata")
-      folder_one_good(TRUE)
+      folder_one_good_meta(TRUE)
     }
     
     if (length(missing_files) > 0) {
@@ -416,22 +563,23 @@ server <- function(input, output, session) {
         duration = NULL, closeButton = FALSE, 
         id = "folder_one_code_in_metadata_but_not_files"
       )
-      # folder_one_good(FALSE)
+       folder_one_good_codes(FALSE)
     } else{
       removeNotification("folder_one_code_in_metadata_but_not_files")
-      #folder_one_good(TRUE)
+      folder_one_good_codes(TRUE)
     }
     
-    folder_one_good(length(missing_files) == 0 && length(missing_codes) == 0)
+    folder_one_good(folder_one_good_codes() && folder_one_good_meta())
   })
   
   #folder two
   observe({
     meta_dat <- uploaded_metadata()
-    req(meta_dat, input$folder_two)
+    files <- folder_two_files_to_use()
+    req(meta_dat, files)
     
     codes <- as.character(meta_dat$Code)
-    file_codes <- tools::file_path_sans_ext(input$folder_two$name)
+    file_codes <- tools::file_path_sans_ext(files$name)
     
     missing_codes <- setdiff(file_codes, codes)
     missing_files <- setdiff(codes, file_codes)
@@ -444,10 +592,10 @@ server <- function(input, output, session) {
         duration = NULL, closeButton = FALSE, 
         id = "folder_two_spectra_not_in_metadata"
       )
-      folder_two_good(FALSE)
+      folder_two_good_meta(FALSE)
     } else{
       removeNotification("folder_two_spectra_not_in_metadata")
-      folder_two_good(TRUE)
+      folder_two_good_meta(TRUE)
     }
     
     if (length(missing_files) > 0) {
@@ -458,22 +606,23 @@ server <- function(input, output, session) {
         duration = NULL, closeButton = FALSE,
         id = "folder_two_code_in_metadata_but_not_files"
       )
-      #folder_two_good(FALSE)
+      folder_two_good_codes(FALSE)
     } else{
       removeNotification("folder_two_code_in_metadata_but_not_files")
-      #folder_two_good(TRUE)
+      folder_two_good_codes(TRUE)
     }
-    folder_two_good(length(missing_files) == 0 && length(missing_codes) == 0)
+    folder_two_good(folder_two_good_codes() && folder_two_good_meta())
     
   })
   
   # folder three
   observe({
     meta_dat <- uploaded_metadata()
-    req(meta_dat, input$folder_three)
+    files <- folder_three_files_to_use()
+    req(meta_dat, files)
     
     codes <- as.character(meta_dat$Code)
-    file_codes <- tools::file_path_sans_ext(input$folder_three$name)
+    file_codes <- tools::file_path_sans_ext(files$name)
     
     missing_codes <- setdiff(file_codes, codes)
     missing_files <- setdiff(codes, file_codes)
@@ -486,10 +635,10 @@ server <- function(input, output, session) {
         duration = NULL, closeButton = FALSE,
         id = "folder_three_spectra_not_in_metadata"
       )
-      folder_three_good(FALSE)
+      folder_three_good_meta(FALSE)
     } else{
       removeNotification("folder_three_spectra_not_in_metadata")
-      folder_three_good(TRUE)
+      folder_three_good_meta(TRUE)
     }
     
     if (length(missing_files) > 0) {
@@ -500,15 +649,14 @@ server <- function(input, output, session) {
         duration = NULL, closeButton = FALSE,
         id = "folder_three_code_in_metadata_but_not_files"
       )
-      #  folder_three_good(FALSE)
+        folder_three_good_codes(FALSE)
     } else{
       removeNotification("folder_three_code_in_metadata_but_not_files")
-      # folder_three_good(TRUE)
+       folder_three_good_codes(TRUE)
     }
     
-    folder_three_good(length(missing_files) == 0 && length(missing_codes) == 0)
+    folder_three_good(folder_three_good_codes() && folder_three_good_meta())
   })
-  
   
   
   # get the tolerance
@@ -608,7 +756,7 @@ server <- function(input, output, session) {
     contains_folder_two <- TRUE
     contains_folder_three <- TRUE
     
-    if(is.null(input$folder_one)){
+    if(is.null(folder_one_files_to_use())){
       showNotification( "Please upload files for LOW fragmentation spectra", 
                         type = "error", 
                         duration = NULL, 
@@ -618,161 +766,163 @@ server <- function(input, output, session) {
     } else{
       removeNotification("Low_fragmentation_missing")
     }
-    if(is.null(input$folder_two)){
+    if(is.null(folder_two_files_to_use())){
       contains_folder_two <- FALSE
       showNotification( "No files uploaded for MID fragmentation", type = "warning")
     }
-    if(is.null(input$folder_three)){
+    if(is.null(folder_three_files_to_use())){
       contains_folder_three <- FALSE
       showNotification( "No files uploaded for HIGH fragmentation", type = "warning")
     }    
     
     
     # double check to make sure all spectra are .txt files
+    # 
+    # all these checks are done above, so I've commented them out for now...
     
-    # folder one
-    req(input$folder_one)
-    extensions_one <- tolower(tools::file_ext(input$folder_one$name))
-    bad_files_one <- input$folder_one$name[extensions_one != "txt"]
-    if (length(bad_files_one) > 0) {
-      showNotification(
-        paste(
-          "Please upload all spectra files as .txt files. The following files are not .txt files:",
-          paste(bad_files_one, collapse = ", ")),
-        type = "error",
-        duration = NULL)
-      return(NULL)
-    }
-    
-    # folder two
-    if(contains_folder_two){
-      
-      req(input$folder_two)
-      extensions_two <- tolower(tools::file_ext(input$folder_two$name))
-      bad_files_two <- input$folder_two$name[extensions_two != "txt"]
-      
-      if (length(bad_files_two) > 0) {
-        showNotification(
-          paste(
-            "Please upload all spectra files as .txt files. The following files are not .txt files:",
-            paste(bad_files_two, collapse = ", ")),
-          type = "error",
-          duration = NULL)
-        return(NULL)
-      }
-    }
-    # folder three
-    if(contains_folder_three){
-      
-      req(input$folder_three)
-      extensions_three <- tolower(tools::file_ext(input$folder_three$name))
-      bad_files_three <- input$folder_three$name[extensions_three != "txt"]
-      
-      if (length(bad_files_three) > 0) {
-        showNotification(
-          paste(
-            "Please upload all spectra files as .txt files. The following files are not .txt files:",
-            paste(bad_files_three, collapse = ", ")),
-          type = "error",
-          duration = NULL)
-        return(NULL)
-      }
-    }
-    
-    
-    #double check that the spectra exist in the metadata and vice versa
-    codes <- as.character(meta_dat$Code)
-    folder_error <- FALSE
-    
-    #folder one 
-    file_codes_one <- tools::file_path_sans_ext(input$folder_one$name)
-    
-    missing_codes_one <- setdiff(file_codes_one, codes)
-    missing_files_one <- setdiff(codes, file_codes_one)
-    
-    if (length(missing_codes_one) > 0) {
-      showNotification(
-        paste("The following spectra in folder 1 do not have corresponding codes in the metadata file: ",
-              paste(missing_codes_one, collapse = ", ")),
-        type = "error",
-        duration = NULL)
-      folder_error <- TRUE
-      #return(NULL)
-    }
-    
-    if (length(missing_files_one) > 0) {
-      showNotification(
-        paste("The following codes with metadata in the master file do not have corresponding LOW spectra: ",
-              paste(missing_files_one, collapse = ", ")),
-        type = "error",
-        duration = NULL)
-      folder_error <- TRUE
-      #return(NULL)
-    }
-    # folder two
-    if(contains_folder_two){
-      
-      file_codes_two <- tools::file_path_sans_ext(input$folder_two$name)
-      
-      missing_codes_two <- setdiff(file_codes_two, codes)
-      missing_files_two <- setdiff(codes, file_codes_two)
-      
-      if (length(missing_codes_two) > 0) {
-        showNotification(
-          paste("The following spectra in folder 2 do not have corresponding codes in the metadata file: ",
-                paste(missing_codes_two, collapse = ", ")),
-          type = "error",
-          duration = NULL)
-        folder_error <- TRUE
-        #return(NULL)
-      }
-      
-      if (length(missing_files_two) > 0) {
-        showNotification(
-          paste("The following codes with metadata in the master file do not have corresponding MID spectra: ",
-                paste(missing_files_two, collapse = ", ")),
-          type = "error",
-          duration = NULL
-        )
-        folder_error <- TRUE
-        #return(NULL)
-      }
-    }
-    #folder three
-    if(contains_folder_three){
-      file_codes_three <- tools::file_path_sans_ext(input$folder_three$name)
-      
-      missing_codes_three <- setdiff(file_codes_three, codes)
-      missing_files_three <- setdiff(codes, file_codes_three)
-      
-      if (length(missing_codes_three) > 0) {
-        showNotification(
-          paste("The following spectra in folder 3 do not have corresponding codes in the metadata file: ",
-                paste(missing_codes_three, collapse = ", ")),
-          type = "error",
-          duration = NULL)
-        folder_error <- TRUE
-        #return(NULL)
-      }
-      
-      if (length(missing_files_three) > 0) {
-        showNotification(
-          paste("The following codes with metadata in the master file do not have corresponding HIGH spectra: ",
-                paste(missing_files_three, collapse = ", ")
-          ),
-          type = "error",
-          duration = NULL
-        )
-        folder_error <- TRUE
-        #return(NULL)
-      }
-    }
-    
-    
-    # ends the folder check while showing all the notifications
-    if(folder_error){
-      return(NULL)
-    }
+    # # folder one
+    # req(input$folder_one)
+    # extensions_one <- tolower(tools::file_ext(input$folder_one$name))
+    # bad_files_one <- input$folder_one$name[extensions_one != "txt"]
+    # if (length(bad_files_one) > 0) {
+    #   showNotification(
+    #     paste(
+    #       "Please upload all spectra files as .txt files. The following files are not .txt files:",
+    #       paste(bad_files_one, collapse = ", ")),
+    #     type = "error",
+    #     duration = NULL)
+    #   return(NULL)
+    # }
+    # 
+    # # folder two
+    # if(contains_folder_two){
+    #   
+    #   req(input$folder_two)
+    #   extensions_two <- tolower(tools::file_ext(input$folder_two$name))
+    #   bad_files_two <- input$folder_two$name[extensions_two != "txt"]
+    #   
+    #   if (length(bad_files_two) > 0) {
+    #     showNotification(
+    #       paste(
+    #         "Please upload all spectra files as .txt files. The following files are not .txt files:",
+    #         paste(bad_files_two, collapse = ", ")),
+    #       type = "error",
+    #       duration = NULL)
+    #     return(NULL)
+    #   }
+    # }
+    # # folder three
+    # if(contains_folder_three){
+    #   
+    #   req(input$folder_three)
+    #   extensions_three <- tolower(tools::file_ext(input$folder_three$name))
+    #   bad_files_three <- input$folder_three$name[extensions_three != "txt"]
+    #   
+    #   if (length(bad_files_three) > 0) {
+    #     showNotification(
+    #       paste(
+    #         "Please upload all spectra files as .txt files. The following files are not .txt files:",
+    #         paste(bad_files_three, collapse = ", ")),
+    #       type = "error",
+    #       duration = NULL)
+    #     return(NULL)
+    #   }
+    # }
+    # 
+    # 
+    # #double check that the spectra exist in the metadata and vice versa
+    # codes <- as.character(meta_dat$Code)
+    # folder_error <- FALSE
+    # 
+    # #folder one 
+    # file_codes_one <- tools::file_path_sans_ext(input$folder_one$name)
+    # 
+    # missing_codes_one <- setdiff(file_codes_one, codes)
+    # missing_files_one <- setdiff(codes, file_codes_one)
+    # 
+    # if (length(missing_codes_one) > 0) {
+    #   showNotification(
+    #     paste("The following spectra in folder 1 do not have corresponding codes in the metadata file: ",
+    #           paste(missing_codes_one, collapse = ", ")),
+    #     type = "error",
+    #     duration = NULL)
+    #   folder_error <- TRUE
+    #   #return(NULL)
+    # }
+    # 
+    # if (length(missing_files_one) > 0) {
+    #   showNotification(
+    #     paste("The following codes with metadata in the master file do not have corresponding LOW spectra: ",
+    #           paste(missing_files_one, collapse = ", ")),
+    #     type = "error",
+    #     duration = NULL)
+    #   folder_error <- TRUE
+    #   #return(NULL)
+    # }
+    # # folder two
+    # if(contains_folder_two){
+    #   
+    #   file_codes_two <- tools::file_path_sans_ext(input$folder_two$name)
+    #   
+    #   missing_codes_two <- setdiff(file_codes_two, codes)
+    #   missing_files_two <- setdiff(codes, file_codes_two)
+    #   
+    #   if (length(missing_codes_two) > 0) {
+    #     showNotification(
+    #       paste("The following spectra in folder 2 do not have corresponding codes in the metadata file: ",
+    #             paste(missing_codes_two, collapse = ", ")),
+    #       type = "error",
+    #       duration = NULL)
+    #     folder_error <- TRUE
+    #     #return(NULL)
+    #   }
+    #   
+    #   if (length(missing_files_two) > 0) {
+    #     showNotification(
+    #       paste("The following codes with metadata in the master file do not have corresponding MID spectra: ",
+    #             paste(missing_files_two, collapse = ", ")),
+    #       type = "error",
+    #       duration = NULL
+    #     )
+    #     folder_error <- TRUE
+    #     #return(NULL)
+    #   }
+    # }
+    # #folder three
+    # if(contains_folder_three){
+    #   file_codes_three <- tools::file_path_sans_ext(input$folder_three$name)
+    #   
+    #   missing_codes_three <- setdiff(file_codes_three, codes)
+    #   missing_files_three <- setdiff(codes, file_codes_three)
+    #   
+    #   if (length(missing_codes_three) > 0) {
+    #     showNotification(
+    #       paste("The following spectra in folder 3 do not have corresponding codes in the metadata file: ",
+    #             paste(missing_codes_three, collapse = ", ")),
+    #       type = "error",
+    #       duration = NULL)
+    #     folder_error <- TRUE
+    #     #return(NULL)
+    #   }
+    #   
+    #   if (length(missing_files_three) > 0) {
+    #     showNotification(
+    #       paste("The following codes with metadata in the master file do not have corresponding HIGH spectra: ",
+    #             paste(missing_files_three, collapse = ", ")
+    #       ),
+    #       type = "error",
+    #       duration = NULL
+    #     )
+    #     folder_error <- TRUE
+    #     #return(NULL)
+    #   }
+    # }
+    # 
+    # 
+    # # ends the folder check while showing all the notifications
+    # if(folder_error){
+    #   return(NULL)
+    # }
     
     # do more checks HERE
     
@@ -834,7 +984,14 @@ server <- function(input, output, session) {
       inputed_spectra <- c(LOW_spectra, MID_spectra, HIGH_spectra)
       
       for (i in seq_along(inputed_spectra)) {
-        uploaded_spectra_file <- input[[inputed_spectra[i]]]
+        #uploaded_spectra_file <- input[[inputed_spectra[i]]]
+        
+        uploaded_spectra_file <- switch(
+          inputed_spectra[i],
+          "folder_one"   = folder_one_files_to_use(),
+          "folder_two"   = folder_two_files_to_use(),
+          "folder_three" = folder_three_files_to_use()
+          )
         
         if (is.null(uploaded_spectra_file)) {
           next
@@ -946,7 +1103,7 @@ server <- function(input, output, session) {
       
       shinyjs::click("download_library")
       
-      # the else statement should *technically* be above the click(download_library), but because I don't have anything, there's no point
+      # end of basic database
     } else{
 
       ## Definition of monoisotpic mass for atoms of interest
@@ -1079,7 +1236,14 @@ server <- function(input, output, session) {
        
 
        for (i in seq_along(inputed_spectra)) {
-         uploaded_spectra_file <- input[[inputed_spectra[i]]]
+         #uploaded_spectra_file <- input[[inputed_spectra[i]]]
+         
+         uploaded_spectra_file <- switch(
+           inputed_spectra[i],
+           "folder_one"   = folder_one_files_to_use(),
+           "folder_two"   = folder_two_files_to_use(),
+           "folder_three" = folder_three_files_to_use()
+         )
          
          if (is.null(uploaded_spectra_file)) {
            next
