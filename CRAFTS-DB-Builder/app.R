@@ -737,6 +737,7 @@ observe({
   observeEvent(input$run, {
     
     req(input$Master_file)
+    disable("run")
     
     # Make sure the master file is an xlsx or csv file; aka doing a second error check just to make sure that the user doesn't shoot themself in the foot
     
@@ -1823,7 +1824,7 @@ observe({
       #print("no error")
       #return(NULL)
     }
-    
+    enable("run")
   }) # ends the "results" section
   
   
