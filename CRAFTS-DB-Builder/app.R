@@ -96,8 +96,20 @@ ui <- fluidPage(
     ), # end of page one
     
     # start of page two
-    tabPanel("About",  textOutput("text") # add anything that needs to be added (i.e tables, graphs, ect) to page two here
-    )
+    tabPanel("About", # add anything that needs to be added (i.e tables, graphs, ect) to page two here
+             h1("About the CRAFT Database Builder"),
+             
+             HTML("<p>An app for generating R data table (.RDS) databases for use with the <a href='https://data.nist.gov/od/id/mds2-2448'>NIST/NIJ DART-MS DIT (v3.22)</a>.</p>"),
+             HTML("Tested with R version 4.6.1</p>"),
+             HTML("<p>Developed by: Arun Moorthy - arunmoorthy@trentu.ca</a>.</p>"),
+             
+             HTML("<p>Adapted from code originally developed by Arun and Edward Sisco (edward.sisco@nist.gov) as presented as supplemental material in 
+                  <a href = 'https://pubs.acs.org/doi/10.1021/jasms.0c00416'>Sisco et. al (2021). JASMS 32(3), 685-689.</a> 
+                  See original source code at <a href = 'https://github.com/asm3-nist/DART-MS-DBB'> https://github.com/asm3-nist/DART-MS-DBB. </a> </p>") , 
+             HTML("<p>A manuscript to accompany this source code has been deposited on ChemRxiv: 
+                  <a href = 'https://doi.org/10.26434/chemrxiv-2025-5thd3'> Moorthy et al., 2025</a>. A peer-reviewed technical note to accompany this source code has been published through the Journal of the American Scoeity for Mass Spectrometry:
+                  <a href 'https://doi.org/10.1021/jasms.5c00382'> Moorthy et al., 2025</a>.</p>")
+             )
     
   )
 ) 
@@ -739,6 +751,7 @@ observe({
     req(input$Master_file)
     disable("run")
     
+
     # Make sure the master file is an xlsx or csv file; aka doing a second error check just to make sure that the user doesn't shoot themself in the foot
     
     if(grepl("\\.xlsx$", input$Master_file$datapath, ignore.case = TRUE)){
